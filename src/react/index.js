@@ -3,9 +3,10 @@ import {
   REACT_ELEMENT,
   REACT_FORWARD_REF,
   REACT_FRAGMENT,
+  REACT_MEMO,
   REACT_PROVIDER,
 } from "./constant";
-import { toVdom } from "./utils";
+import { shallowEqual, toVdom } from "./utils";
 import { Component } from "./Compnent";
 /**
  * 创建元素=>虚拟DOM
@@ -90,6 +91,23 @@ export function cloneElement(element, newProps, ...newChildren) {
   };
 }
 
+function memo(type, compare = null) {
+  return {
+    $$typeof: REACT_MEMO,
+    compare,
+    type,
+  };
+}
+
+class PureComponent extends Component {
+  shouldComponentUpdate(nextProps, nextState) {
+    return (
+      !shallowEqual(this.props, nextProps) ||
+      !shallowEqual(this.state, nextState)
+    );
+  }
+}
+
 const React = {
   createElement,
   Component,
@@ -98,6 +116,8 @@ const React = {
   Fragment: REACT_FRAGMENT,
   createContext,
   cloneElement,
+  PureComponent,
+  memo,
 };
 
 export default React;

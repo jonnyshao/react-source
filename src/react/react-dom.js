@@ -8,9 +8,10 @@ import {
   PLACEMENT,
   REACT_PROVIDER,
   REACT_CONTEXT,
+  REACT_MEMO,
 } from "./constant";
 import { addEvent } from "./event";
-import { isFunction } from "./utils";
+import { isFunction, shallowEqual } from "./utils";
 /**
  * 根据虚拟DOM获取真实DOM
  * @param {*} vdom
@@ -54,7 +55,9 @@ export function compareTwoVdom(parentDom, oldVdom, newVdom, nextDom) {
  * @param {*} newVdom
  */
 function updateElement(oldVdom, newVdom) {
-  if (oldVdom.type.$$typeof === REACT_CONTEXT) {
+  if (oldVdom.type.$$typeof === REACT_MEMO) {
+    updateMemoComponent(oldVdom, newVdom);
+  } else if (oldVdom.type.$$typeof === REACT_CONTEXT) {
     updateContextComponent(oldVdom, newVdom);
   } else if (oldVdom.type.$$typeof === REACT_PROVIDER) {
     updateProviderCompoent(oldVdom, newVdom);
@@ -77,6 +80,24 @@ function updateElement(oldVdom, newVdom) {
     } else {
       updateFunctionComponent(oldVdom, newVdom);
     }
+  }
+}
+
+function updateMemoComponent(oldVdom, newVdom) {
+  let { type, prevProps } = oldVdom;
+  type.compare ||= shallowEqual;
+  // 如果浅比较相等 直接复用oldVdom
+  if (type.compare(prevProps, newVdom.props)) {
+    newVdom.prevProps = prevProps;
+    newVdom.oldRenderVdom = oldVdom.oldRenderVdom;
+  } else {
+    let parentDom = findDOM(oldVdom).parentNode;
+    let { type, props } = newVdom;
+    let renderVdom = type.type(props);
+    compareTwoVdom(parentDom, oldVdom.renderVdom, newVdom.renderVdom);
+    newVdom.prevProps = props;
+    newVdom.oldRenderVdom = renderVdom;
+    return createDOM(renderVdom);
   }
 }
 
@@ -108,8 +129,12 @@ function updateProviderCompoent(oldVdom, newVdom) {
  * @param {*} newVChildren 新的子节点虚拟DOM数组
  */
 function updateChildren(parentDOM, oldVChildren, newVChildren) {
-  oldVChildren = Array.isArray(oldVChildren) ? oldVChildren : [oldVChildren];
-  newVChildren = Array.isArray(newVChildren) ? newVChildren : [newVChildren];
+  oldVChildren = (
+    Array.isArray(oldVChildren) ? oldVChildren : [oldVChildren]
+  ).filter((item) => item != null);
+  newVChildren = (
+    Array.isArray(newVChildren) ? newVChildren : [newVChildren]
+  ).filter((item) => item != null);
   // 构建一个map
   const keyedOldMap = {};
   let lastPlacedIndex = 0;
@@ -215,9 +240,9 @@ function unMountVdom(vdom) {
   }
   if (ref) ref.current = null;
   if (props.children) {
-    let children = Array.isArray(props.children)
-      ? props.children
-      : [props.children];
+    let children = (
+      Array.isArray(props.children) ? props.children : [props.children]
+    ).filter((item) => item != null);
     children.forEach(unMountVdom);
   }
 
@@ -258,8 +283,9 @@ function mount(vdom, container) {
 function createDOM(vdom) {
   let { type, props, ref } = vdom;
   let dom;
-
-  if (type && type.$$typeof === REACT_PROVIDER) {
+  if (type && type.$$typeof === REACT_MEMO) {
+    return mountMemoComponent(vdom);
+  } else if (type && type.$$typeof === REACT_PROVIDER) {
     return mountProviderComponent(vdom);
   } else if (type && type.$$typeof === REACT_CONTEXT) {
     return mountContextComponent(vdom);
@@ -290,6 +316,15 @@ function createDOM(vdom) {
   if (ref) ref.current = dom;
   return dom;
 }
+
+function mountMemoComponent(vdom) {
+  let { type, props } = vdom;
+  let renderVdom = type.type(props);
+  vdom.prevProps = props;
+  vdom.oldRenderVdom = renderVdom;
+  return createDOM(renderVdom);
+}
+
 function mountProviderComponent(vdom) {
   let { type, props } = vdom;
   let context = type._context;

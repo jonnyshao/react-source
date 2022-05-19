@@ -3,6 +3,7 @@ export const REACT_TEXT = Symbol("react.text");
 export const REACT_COMPONENT = Symbol("react.component");
 export const REACT_FORWARD_REF = Symbol("react.forward_ref");
 export const REACT_FRAGMENT = Symbol("react.fragment");
+export const REACT_MEMO = Symbol("react.memo");
 
 // 插入
 export const PLACEMENT = "PLACEMENT";

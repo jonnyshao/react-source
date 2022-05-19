@@ -1,64 +1,35 @@
-import React from "react";
-import ReactDOM from "react-dom";
-class MouseTracker extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { x: 0, y: 0 };
+// import React from "react";
+// import ReactDOM from "react-dom";
+import React from "./react";
+import ReactDOM from "./react/react-dom";
+class ClassCounter extends React.PureComponent {
+  render() {
+    console.log("ClassCounter render");
+    return <div>ClassCounter:{this.props.count}</div>;
   }
-
-  handleMouseMove = (event) => {
-    this.setState({
-      x: event.clientX,
-      y: event.clientY,
-    });
+}
+function FunctionCounter(props) {
+  console.log("FunctionCounter render");
+  //   debugger;
+  return <div>FunctionCounter:{props.count}</div>;
+}
+const MemoFunctionCounter = React.memo(FunctionCounter);
+class App extends React.Component {
+  state = { number: 0 };
+  amountRef = React.createRef();
+  handleClick = () => {
+    let nextNumber = this.state.number + parseInt(this.amountRef.current.value);
+    this.setState({ number: nextNumber });
   };
-
   render() {
     return (
-      <div
-        onMouseMove={this.handleMouseMove}
-        style={{ boxSizing: "border-box", border: "1px solid red" }}
-      >
-        {this.props.render(this.state)}
+      <div>
+        <ClassCounter count={this.state.number} />
+        <MemoFunctionCounter count={this.state.number} />
+        <input ref={this.amountRef} defaultValue={0} />
+        <button onClick={this.handleClick}>+</button>
       </div>
     );
   }
 }
-function Show(props) {
-  return (
-    <React.Fragment>
-      <h1>移动鼠标!</h1>
-      <p>
-        当前的鼠标位置是 ({props.x}, {props.y})
-      </p>
-    </React.Fragment>
-  );
-}
-function withMouseTracker(OldComponent) {
-  return class extends React.Component {
-    constructor(props) {
-      super(props);
-      this.state = { x: 0, y: 0 };
-    }
-
-    handleMouseMove = (event) => {
-      this.setState({
-        x: event.clientX,
-        y: event.clientY,
-      });
-    };
-
-    render() {
-      return (
-        <div
-          onMouseMove={this.handleMouseMove}
-          style={{ boxSizing: "border-box", border: "1px solid red" }}
-        >
-          <OldComponent {...this.state} />
-        </div>
-      );
-    }
-  };
-}
-const MouserTrackerShow = withMouseTracker(Show);
-ReactDOM.render(<MouserTrackerShow />, document.getElementById("root"));
+ReactDOM.render(<App />, document.getElementById("root"));
