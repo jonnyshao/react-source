@@ -73,6 +73,23 @@ export function createContext() {
   return context;
 }
 
+export function cloneElement(element, newProps, ...newChildren) {
+  let oldChildren = element.props && element.props.children;
+
+  let children = [
+    ...(Array.isArray(oldChildren) ? oldChildren : [oldChildren]),
+    ...newChildren,
+  ]
+    .filter((item) => item != null)
+    .map(toVdom);
+  if (children.length === 1) children = children[0];
+  let props = { ...element.props, ...newProps, children };
+  return {
+    ...element,
+    props,
+  };
+}
+
 const React = {
   createElement,
   Component,
@@ -80,6 +97,7 @@ const React = {
   forwardRef,
   Fragment: REACT_FRAGMENT,
   createContext,
+  cloneElement,
 };
 
 export default React;

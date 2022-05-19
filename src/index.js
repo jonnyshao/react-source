@@ -1,114 +1,64 @@
-// import React from "react";
-// import ReactDOM from "react-dom";
-import React from "./react";
-import ReactDOM from "./react/react-dom";
-const ColorContext = React.createContext();
-console.log(ColorContext);
-const style = { margin: "5px", padding: "5px" };
-
-function Title() {
-  return (
-    <ColorContext.Consumer>
-      {(contextValue) => (
-        <div
-          style={{
-            ...style,
-            border: `2px solid ${contextValue.color}`,
-          }}
-        >
-          Title
-        </div>
-      )}
-    </ColorContext.Consumer>
-  );
-}
-function Content() {
-  return (
-    <ColorContext.Consumer>
-      {(contextValue) => (
-        <div
-          style={{
-            ...style,
-            border: `2px solid ${contextValue.color}`,
-          }}
-        >
-          Content
-          <button onClick={() => contextValue.changeColor("pink")}>pink</button>
-          <button onClick={() => contextValue.changeColor("yellowGreen")}>
-            Green
-          </button>
-        </div>
-      )}
-    </ColorContext.Consumer>
-  );
-}
-
-class Header extends React.Component {
-  static contextType = ColorContext;
-  render() {
-    return (
-      <div
-        style={{
-          ...style,
-          border: `2px solid ${this.context.color}`,
-        }}
-      >
-        Header
-        <Title />
-      </div>
-    );
-  }
-}
-class Main extends React.Component {
-  static contextType = ColorContext;
-  render() {
-    return (
-      <div
-        style={{
-          ...style,
-          border: `2px solid ${this.context.color}`,
-        }}
-      >
-        Main
-        <Content />
-      </div>
-    );
-  }
-}
-class Panel extends React.Component {
+import React from "react";
+import ReactDOM from "react-dom";
+class MouseTracker extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {
-      color: "black",
-    };
+    this.state = { x: 0, y: 0 };
   }
-  changeColor = (color) => {
+
+  handleMouseMove = (event) => {
     this.setState({
-      color,
+      x: event.clientX,
+      y: event.clientY,
     });
   };
-  render() {
-    const contextValue = {
-      color: this.state.color,
-      changeColor: this.changeColor,
-    };
-    return (
-      <ColorContext.Provider value={contextValue}>
-        <div
-          style={{
-            ...style,
-            width: "250px",
 
-            border: `2px solid ${this.state.color}`,
-          }}
-        >
-          Panle
-          <Header></Header>
-          <Main></Main>
-        </div>
-      </ColorContext.Provider>
+  render() {
+    return (
+      <div
+        onMouseMove={this.handleMouseMove}
+        style={{ boxSizing: "border-box", border: "1px solid red" }}
+      >
+        {this.props.render(this.state)}
+      </div>
     );
   }
 }
+function Show(props) {
+  return (
+    <React.Fragment>
+      <h1>移动鼠标!</h1>
+      <p>
+        当前的鼠标位置是 ({props.x}, {props.y})
+      </p>
+    </React.Fragment>
+  );
+}
+function withMouseTracker(OldComponent) {
+  return class extends React.Component {
+    constructor(props) {
+      super(props);
+      this.state = { x: 0, y: 0 };
+    }
 
-ReactDOM.render(<Panel name="Ryan" />, document.getElementById("root"));
+    handleMouseMove = (event) => {
+      this.setState({
+        x: event.clientX,
+        y: event.clientY,
+      });
+    };
+
+    render() {
+      return (
+        <div
+          onMouseMove={this.handleMouseMove}
+          style={{ boxSizing: "border-box", border: "1px solid red" }}
+        >
+          <OldComponent {...this.state} />
+        </div>
+      );
+    }
+  };
+}
+const MouserTrackerShow = withMouseTracker(Show);
+ReactDOM.render(<MouserTrackerShow />, document.getElementById("root"));
