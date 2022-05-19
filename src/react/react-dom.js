@@ -6,6 +6,8 @@ import {
   REACT_FRAGMENT,
   MOVE,
   PLACEMENT,
+  REACT_PROVIDER,
+  REACT_CONTEXT,
 } from "./constant";
 import { addEvent } from "./event";
 import { isFunction } from "./utils";
@@ -23,42 +25,26 @@ export function findDOM(vdom) {
   return findDOM(renderVdom);
 }
 export function compareTwoVdom(parentDom, oldVdom, newVdom, nextDom) {
-  // let oldDOM = findDOM(oldVdom);
-  // let newDom = createDOM(newVdom);
-  // parentDom.replaceChild(newDom, oldDOM);
-  // 新老节点都不存在
-  if (!oldVdom && !newVdom) return null;
-  // 老节点存在 新节点不存在 删除老节点
-  if (oldVdom && !newVdom) {
+  if (!oldVdom && !newVdom) {
+    //老和新的节点都没有
+    return;
+  } else if (oldVdom && !newVdom) {
+    //老节点有新节点没有
     unMountVdom(oldVdom);
-    // 插入 老节点 没有 新节点有值
   } else if (!oldVdom && newVdom) {
-    let newDom = createDOM(newVdom);
-    if (nextDom) {
-      parentDom.insertBefore(newDom, nextDom);
-    } else {
-      parentDom.appendChild(newDom);
-    }
-
-    if (newDom.componentDidMount) {
-      newDom.componentDidMount();
-    }
-    // 新老节点都有 但类型不同
+    //老没有新的有
+    let newDOM = createDOM(newVdom);
+    if (nextDom) parentDom.insertBefore(newDOM, nextDom);
+    else parentDom.appendChild(newDOM);
+    if (newDOM.componentDidMount) newDOM.componentDidMount();
+    return;
   } else if (oldVdom && newVdom && oldVdom.type !== newVdom.type) {
-    // 卸载老节点
+    //新老都有，但类型不同
+    let newDOM = createDOM(newVdom);
     unMountVdom(oldVdom);
-    let newDom = createDOM(newVdom);
-    if (nextDom) {
-      parentDom.insertBefore(newDom, nextDom);
-    } else {
-      parentDom.appendChild(newDom);
-    }
-    if (newDom.componentDidMount) {
-      newDom.componentDidMount();
-    }
-    // 新老节点都有值，类型也一样
+    if (newDOM.componentDidMount) newDOM.componentDidMount();
   } else {
-    updateElement(parentDom, oldVdom, newVdom);
+    updateElement(oldVdom, newVdom);
   }
 }
 
@@ -67,9 +53,13 @@ export function compareTwoVdom(parentDom, oldVdom, newVdom, nextDom) {
  * @param {*} oldVdom
  * @param {*} newVdom
  */
-function updateElement(parentDom, oldVdom, newVdom) {
-  // 如果是文本 更新文本内容
-  if (oldVdom.type === REACT_TEXT) {
+function updateElement(oldVdom, newVdom) {
+  if (oldVdom.type.$$typeof === REACT_CONTEXT) {
+    updateContextComponent(oldVdom, newVdom);
+  } else if (oldVdom.type.$$typeof === REACT_PROVIDER) {
+    updateProviderCompoent(oldVdom, newVdom);
+  } else if (oldVdom.type === REACT_TEXT) {
+    // 如果是文本 更新文本内容
     let currentDOM = (newVdom.dom = findDOM(oldVdom));
     if (oldVdom.props !== newVdom.props) {
       currentDOM.textContent = newVdom.props;
@@ -89,6 +79,28 @@ function updateElement(parentDom, oldVdom, newVdom) {
     }
   }
 }
+
+function updateContextComponent(oldVdom, newVdom) {
+  let parentDom = findDOM(oldVdom).parentNode;
+
+  let { type, props } = newVdom;
+  let context = type._context;
+  let renderVdom = props.children(context._currentValue);
+
+  compareTwoVdom(parentDom, oldVdom.oldRenderVdom, renderVdom);
+  newVdom.oldRenderVdom = renderVdom;
+}
+function updateProviderCompoent(oldVdom, newVdom) {
+  let parentDom = findDOM(oldVdom).parentNode;
+
+  let { type, props } = newVdom;
+  let context = type._context;
+  context._currentValue = props.value;
+  let renderVdom = props.children;
+
+  compareTwoVdom(parentDom, oldVdom.oldRenderVdom, renderVdom);
+  newVdom.oldRenderVdom = renderVdom;
+}
 /**
  * 更新子节点
  * @param {*} parentDOM 父节点真实DOM
@@ -99,12 +111,14 @@ function updateChildren(parentDOM, oldVChildren, newVChildren) {
   oldVChildren = Array.isArray(oldVChildren) ? oldVChildren : [oldVChildren];
   newVChildren = Array.isArray(newVChildren) ? newVChildren : [newVChildren];
   // 构建一个map
-  let keyedOldMap = {};
+  const keyedOldMap = {};
   let lastPlacedIndex = 0;
+
   oldVChildren.forEach((oldVdom, index) => {
     let oldKey = oldVdom.key ? oldVdom.key : index;
     keyedOldMap[oldKey] = oldVdom;
   });
+
   // 创建一个DOM 补丁包 收集DOM操作
   const patch = [];
   newVChildren.forEach((newVdom, index) => {
@@ -115,7 +129,7 @@ function updateChildren(parentDOM, oldVChildren, newVChildren) {
     // 如果存在老节点
 
     if (oldVdom) {
-      updateElement(findDOM(oldVdom).parentNode, oldVdom, newVdom);
+      updateElement(oldVdom, newVdom);
       // 老节点挂载索引小于上一次移动的索引
       if (oldVdom.mountIndex < lastPlacedIndex) {
         patch.push({
@@ -136,18 +150,19 @@ function updateChildren(parentDOM, oldVChildren, newVChildren) {
       });
     }
   });
-  if (patch.length) {
-    let moveVChildren = patch
-      .filter((action) => action.type === MOVE)
-      .map((action) => action.oldVdom);
-    // keyedOldMap 未被复用的老节点连接上 需要移动的节点 全部删除
-    Object.values(keyedOldMap)
-      .concat(moveVChildren)
-      .forEach((oldVChild) => {
-        let currentDOM = findDOM(oldVChild);
-        currentDOM.remove();
-      });
 
+  let moveVChildren = patch
+    .filter((action) => action.type === MOVE)
+    .map((action) => action.oldVdom);
+  // keyedOldMap 未被复用的老节点连接上 需要移动的节点 全部删除
+  Object.values(keyedOldMap)
+    .concat(moveVChildren)
+    .forEach((oldVChild) => {
+      let currentDOM = findDOM(oldVChild);
+      currentDOM.remove();
+    });
+
+  if (patch.length) {
     patch.forEach((action) => {
       let { type, oldVdom, newVdom, mountIndex } = action;
       // 老的真实子DOM节点集合
@@ -226,7 +241,7 @@ function updateFunctionComponent(oldVdom, newVdom) {
   if (!currentDOM) return;
   let { type, props } = newVdom;
   let newRenderVdom = type(props);
-  compareTwoVdom(currentDOM.parentNode, oldVdom.renderVdom, newRenderVdom);
+  compareTwoVdom(currentDOM.parentNode, oldVdom.oldRenderVdom, newRenderVdom);
   newVdom.oldRenderVdom = newRenderVdom;
 }
 
@@ -243,7 +258,12 @@ function mount(vdom, container) {
 function createDOM(vdom) {
   let { type, props, ref } = vdom;
   let dom;
-  if (type && type.$$typeof == REACT_FORWARD_REF) {
+
+  if (type && type.$$typeof === REACT_PROVIDER) {
+    return mountProviderComponent(vdom);
+  } else if (type && type.$$typeof === REACT_CONTEXT) {
+    return mountContextComponent(vdom);
+  } else if (type.$$typeof == REACT_FORWARD_REF) {
     return mountForwardComponent(vdom);
   } else if (type === REACT_TEXT) {
     dom = document.createTextNode(props);
@@ -270,11 +290,32 @@ function createDOM(vdom) {
   if (ref) ref.current = dom;
   return dom;
 }
+function mountProviderComponent(vdom) {
+  let { type, props } = vdom;
+  let context = type._context;
+  // 赋值
+  context._currentValue = props.value;
+  let renderVdom = props.children;
+  vdom.oldRenderVdom = renderVdom;
+
+  return createDOM(renderVdom);
+}
+function mountContextComponent(vdom) {
+  let { type, props } = vdom;
+  let context = type._context;
+
+  let renderVdom = props.children(context._currentValue);
+  vdom.oldRenderVdom = renderVdom;
+  return createDOM(renderVdom);
+}
 
 function mountClassComponent(vdom) {
-  let { type, props, ref } = vdom;
+  let { type: ClassComponent, props, ref } = vdom;
   // 创建类组件实例
-  let classInstance = new type(props);
+  let classInstance = new ClassComponent(props);
+  if (ClassComponent.contextType) {
+    classInstance.context = ClassComponent.contextType._currentValue;
+  }
   vdom.classInstance = classInstance;
   // 组件将要挂载
 
@@ -349,7 +390,7 @@ function updateProps(dom, oldProps, newProps) {
     }
   }
   for (const key in oldProps) {
-    if (newProps.hasOwnProperty(key)) {
+    if (!newProps.hasOwnProperty(key)) {
       delete dom[key];
     }
   }

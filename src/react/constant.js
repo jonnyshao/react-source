@@ -8,3 +8,6 @@ export const REACT_FRAGMENT = Symbol("react.fragment");
 export const PLACEMENT = "PLACEMENT";
 // 移动
 export const MOVE = "MOVE";
+
+export const REACT_PROVIDER = Symbol("react.provider");
+export const REACT_CONTEXT = Symbol("react.context");

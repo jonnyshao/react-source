@@ -1,81 +1,114 @@
-import React from "react";
-import ReactDOM from "react-dom";
-// import React from "./react";
-// import ReactDOM from "./react/react-dom";
+// import React from "react";
+// import ReactDOM from "react-dom";
+import React from "./react";
+import ReactDOM from "./react/react-dom";
+const ColorContext = React.createContext();
+console.log(ColorContext);
+const style = { margin: "5px", padding: "5px" };
 
-class ScrollList extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      message: [1],
-    };
-  }
-  static getDerivedStateFromProps(props, state) {
-    console.log("getDerivedStateFromProps", props, state);
-    return {
-      message: [100, ...state.message],
-    };
-  }
-
-  shouldComponentUpdate() {
-    return false;
-  }
-  container = React.createRef();
-  handleClick = () => {
-    this.setState({
-      message: [this.state.message.length + 1, ...this.state.message],
-    });
-    // this.forceUpdate();
-  };
-  addMessage = () => {
-    this.setState({
-      message: [`${this.state.message.length}`, ...this.state.message],
-    });
-  };
-  componentDidMount() {
-    // this.timerId = setInterval(() => {
-    //   this.addMessage();
-    // }, 1000);
-  }
-  componentWillUnmount() {
-    clearInterval(this.timerId);
-  }
-  getSnapshotBeforeUpdate() {
-    return {
-      prevScrollTop: this.wrapper.scrollTop,
-      prevScrollHeight: this.wrapper.scrollHeight,
-    };
-  }
-  get wrapper() {
-    return this.container.current;
-  }
-  componentDidUpdate(
-    prevProps,
-    prevState,
-    { prevScrollTop, prevScrollHeight }
-  ) {
-    this.wrapper.scrollTop =
-      prevScrollTop + (this.wrapper.scrollHeight - prevScrollHeight);
-  }
-  render() {
-    console.log("render");
-    const style = {
-      height: "100px",
-      width: "200px",
-      border: "1px solid red",
-      overflow: "auto",
-    };
-    return (
-      <div>
-        <button onClick={this.handleClick}>Change</button>
-        <div style={style} ref={this.container}>
-          {this.state.message.map((message, index) => (
-            <div key={index}>{message}</div>
-          ))}
+function Title() {
+  return (
+    <ColorContext.Consumer>
+      {(contextValue) => (
+        <div
+          style={{
+            ...style,
+            border: `2px solid ${contextValue.color}`,
+          }}
+        >
+          Title
         </div>
+      )}
+    </ColorContext.Consumer>
+  );
+}
+function Content() {
+  return (
+    <ColorContext.Consumer>
+      {(contextValue) => (
+        <div
+          style={{
+            ...style,
+            border: `2px solid ${contextValue.color}`,
+          }}
+        >
+          Content
+          <button onClick={() => contextValue.changeColor("pink")}>pink</button>
+          <button onClick={() => contextValue.changeColor("yellowGreen")}>
+            Green
+          </button>
+        </div>
+      )}
+    </ColorContext.Consumer>
+  );
+}
+
+class Header extends React.Component {
+  static contextType = ColorContext;
+  render() {
+    return (
+      <div
+        style={{
+          ...style,
+          border: `2px solid ${this.context.color}`,
+        }}
+      >
+        Header
+        <Title />
       </div>
     );
   }
 }
+class Main extends React.Component {
+  static contextType = ColorContext;
+  render() {
+    return (
+      <div
+        style={{
+          ...style,
+          border: `2px solid ${this.context.color}`,
+        }}
+      >
+        Main
+        <Content />
+      </div>
+    );
+  }
+}
+class Panel extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      color: "black",
+    };
+  }
+  changeColor = (color) => {
+    this.setState({
+      color,
+    });
+  };
+  render() {
+    const contextValue = {
+      color: this.state.color,
+      changeColor: this.changeColor,
+    };
+    return (
+      <ColorContext.Provider value={contextValue}>
+        <div
+          style={{
+            ...style,
+            width: "250px",
 
-ReactDOM.render(<ScrollList name="Ryan" />, document.getElementById("root"));
+            border: `2px solid ${this.state.color}`,
+          }}
+        >
+          Panle
+          <Header></Header>
+          <Main></Main>
+        </div>
+      </ColorContext.Provider>
+    );
+  }
+}
+
+ReactDOM.render(<Panel name="Ryan" />, document.getElementById("root"));

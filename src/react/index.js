@@ -1,4 +1,10 @@
-import { REACT_ELEMENT, REACT_FORWARD_REF, REACT_FRAGMENT } from "./constant";
+import {
+  REACT_CONTEXT,
+  REACT_ELEMENT,
+  REACT_FORWARD_REF,
+  REACT_FRAGMENT,
+  REACT_PROVIDER,
+} from "./constant";
 import { toVdom } from "./utils";
 import { Component } from "./Compnent";
 /**
@@ -50,12 +56,30 @@ export function forwardRef(render) {
     render,
   };
 }
+
+export function createContext() {
+  let context = {
+    $$typeof: REACT_CONTEXT,
+    _currentValue: undefined,
+  };
+  context.Provider = {
+    $$typeof: REACT_PROVIDER,
+    _context: context,
+  };
+  context.Consumer = {
+    $$typeof: REACT_CONTEXT,
+    _context: context,
+  };
+  return context;
+}
+
 const React = {
   createElement,
   Component,
   createRef,
   forwardRef,
   Fragment: REACT_FRAGMENT,
+  createContext,
 };
 
 export default React;

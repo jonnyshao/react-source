@@ -107,6 +107,9 @@ export class Component {
     // 拿到上一次的DOM
 
     let oldDOM = findDOM(oldRenderVdom);
+    if (this.constructor.contextType) {
+      this.context = this.constructor.contextType._currentValue;
+    }
     if (this.constructor.getDerivedStateFromProps) {
       let newState = this.constructor.getDerivedStateFromProps(
         this.props,
@@ -119,13 +122,12 @@ export class Component {
         );
       }
     }
-    let snapShot;
-    if (this.getSnapshotBeforeUpdate()) {
-      snapShot = this.getSnapshotBeforeUpdate();
-    }
+    let snapShot =
+      this.getSnapshotBeforeUpdate && this.getSnapshotBeforeUpdate();
 
     // 拿到最新的Vdom
     let newRenderVdom = this.render();
+
     compareTwoVdom(oldDOM.parentNode, oldRenderVdom, newRenderVdom);
     this.oldRenderVdom = newRenderVdom;
     if (this.componentDidUpdate) {
