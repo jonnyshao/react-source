@@ -86,18 +86,17 @@ function updateElement(oldVdom, newVdom) {
 function updateMemoComponent(oldVdom, newVdom) {
   let { type, prevProps } = oldVdom;
   type.compare ||= shallowEqual;
-  // 如果浅比较相等 直接复用oldVdom
   if (type.compare(prevProps, newVdom.props)) {
     newVdom.prevProps = prevProps;
     newVdom.oldRenderVdom = oldVdom.oldRenderVdom;
   } else {
-    let parentDom = findDOM(oldVdom).parentNode;
+    let currentDOM = findDOM(oldVdom);
+    let parentDOM = currentDOM.parentNode;
     let { type, props } = newVdom;
     let renderVdom = type.type(props);
-    compareTwoVdom(parentDom, oldVdom.renderVdom, newVdom.renderVdom);
+    compareTwoVdom(parentDOM, oldVdom.oldRenderVdom, renderVdom);
     newVdom.prevProps = props;
     newVdom.oldRenderVdom = renderVdom;
-    return createDOM(renderVdom);
   }
 }
 
@@ -146,6 +145,7 @@ function updateChildren(parentDOM, oldVChildren, newVChildren) {
 
   // 创建一个DOM 补丁包 收集DOM操作
   const patch = [];
+
   newVChildren.forEach((newVdom, index) => {
     newVdom.mountIndex = index;
     let newKey = newVdom.key ? newVdom.key : index;
@@ -187,30 +187,28 @@ function updateChildren(parentDOM, oldVChildren, newVChildren) {
       currentDOM.remove();
     });
 
-  if (patch.length) {
-    patch.forEach((action) => {
-      let { type, oldVdom, newVdom, mountIndex } = action;
-      // 老的真实子DOM节点集合
-      let childNodes = parentDOM.childNodes;
-      if (type === PLACEMENT) {
-        let newDom = createDOM(newVdom);
-        let childNode = childNodes[mountIndex];
-        if (childNode) {
-          parentDOM.insertBefore(newDom, childNode);
-        } else {
-          parentDOM.appendChild(newDom);
-        }
-      } else if (type === MOVE) {
-        let oldDom = findDOM(oldVdom);
-        let childNode = childNodes[mountIndex];
-        if (childNode) {
-          parentDOM.insertBefore(oldDom, childNode);
-        } else {
-          parentDOM.appendChild(oldDom);
-        }
+  patch.forEach((action) => {
+    let { type, oldVdom, newVdom, mountIndex } = action;
+    // 老的真实子DOM节点集合
+    let childNodes = parentDOM.childNodes;
+    if (type === PLACEMENT) {
+      let newDom = createDOM(newVdom);
+      let childNode = childNodes[mountIndex];
+      if (childNode) {
+        parentDOM.insertBefore(newDom, childNode);
+      } else {
+        parentDOM.appendChild(newDom);
       }
-    });
-  }
+    } else if (type === MOVE) {
+      let oldDom = findDOM(oldVdom);
+      let childNode = childNodes[mountIndex];
+      if (childNode) {
+        parentDOM.insertBefore(oldDom, childNode);
+      } else {
+        parentDOM.appendChild(oldDom);
+      }
+    }
+  });
 
   // let maxLen = Math.max(oldVChildren.length, newVChildren.length);
   // for (let i = 0; i < maxLen; i++) {
@@ -248,9 +246,6 @@ function unMountVdom(vdom) {
 
   currentDOM && currentDOM.parentNode.removeChild(currentDOM);
 }
-function render(vdom, container) {
-  mount(vdom, container);
-}
 
 function updateClassComponent(oldVdom, newVdom) {
   const classInstance = (newVdom.classInstance = oldVdom.classInstance);
@@ -270,6 +265,67 @@ function updateFunctionComponent(oldVdom, newVdom) {
   newVdom.oldRenderVdom = newRenderVdom;
 }
 
+let hookStates = [];
+let hookIndex = 0;
+let scheduleUpdate;
+console.log(hookStates);
+export function useCallback(callback, deps) {
+  if (hookStates[hookIndex]) {
+    let [lastCallback, lastDeps] = hookStates[hookIndex];
+    let same = deps.every((item, index) => item === lastDeps[index]);
+    if (same) {
+      hookIndex++;
+      return lastCallback;
+    } else {
+      hookStates[hookIndex++] = [callback, deps];
+      return callback;
+    }
+  } else {
+    hookStates[hookIndex++] = [callback, deps];
+    return callback;
+  }
+}
+
+export function useMemo(factory, deps) {
+  if (hookStates[hookIndex]) {
+    let [lastMemo, lastDeps] = hookStates[hookIndex];
+    let same = deps.every((item, index) => item === lastDeps[index]);
+    if (same) {
+      hookIndex++;
+      return lastMemo;
+    } else {
+      let newMemo = factory();
+      hookStates[hookIndex++] = [newMemo, deps];
+      return newMemo;
+    }
+  } else {
+    let newMemo = factory();
+    hookStates[hookIndex++] = [newMemo, deps];
+    return newMemo;
+  }
+}
+
+export function useState(initialState) {
+  hookStates[hookIndex] = hookStates[hookIndex] || initialState;
+  let currentIndex = hookIndex;
+  function setState(newState) {
+    if (typeof newState === "function")
+      newState = newState(hookStates[currentIndex]);
+    hookStates[currentIndex] = newState;
+    scheduleUpdate();
+  }
+  return [hookStates[hookIndex++], setState];
+}
+
+function render(vdom, container) {
+  mount(vdom, container);
+
+  scheduleUpdate = () => {
+    hookIndex = 0;
+
+    compareTwoVdom(container, vdom, vdom);
+  };
+}
 /**
  * 虚拟DOM渲染成真实DOM
  * @param {*} vdom
@@ -427,7 +483,7 @@ function updateProps(dom, oldProps, newProps) {
           dom.style[attr] = styleObj[attr];
         }
       } else if (/^on[A-Z].*/.test(key)) {
-        addEvent(dom, key.toLowerCase(), newProps[key]);
+        addEvent(dom, key.toLocaleLowerCase(), newProps[key]);
       } else {
         dom[key] = newProps[key];
       }

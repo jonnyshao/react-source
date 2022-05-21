@@ -8,6 +8,7 @@ import {
 } from "./constant";
 import { shallowEqual, toVdom } from "./utils";
 import { Component } from "./Compnent";
+import { useState, useCallback, useMemo } from "./react-dom";
 /**
  * 创建元素=>虚拟DOM
  * @param {*} type
@@ -118,6 +119,9 @@ const React = {
   cloneElement,
   PureComponent,
   memo,
+  useState,
+  useMemo,
+  useCallback,
 };
 
 export default React;
