@@ -1,3 +1,4 @@
+import { act } from "react-dom/test-utils";
 import {
   REACT_COMPONENT,
   REACT_ELEMENT,
@@ -269,6 +270,28 @@ let hookStates = [];
 let hookIndex = 0;
 let scheduleUpdate;
 console.log(hookStates);
+
+export function useContext(context) {
+  return context._currentValue;
+}
+
+export function useReducer(reducer, initialState) {
+  hookStates[hookIndex] ||= initialState;
+  let currentIndex = hookIndex;
+  function dispatch(action) {
+    let oldState = hookStates[currentIndex];
+    if (reducer) {
+      let newState = reducer(oldState, action);
+      hookStates[currentIndex] = newState;
+    } else {
+      let newState = isFunction(action) ? action(oldState) : action;
+      hookStates[currentIndex] = newState;
+    }
+    scheduleUpdate();
+  }
+  return [hookStates[hookIndex++], dispatch];
+}
+
 export function useCallback(callback, deps) {
   if (hookStates[hookIndex]) {
     let [lastCallback, lastDeps] = hookStates[hookIndex];
@@ -306,7 +329,7 @@ export function useMemo(factory, deps) {
 }
 
 export function useState(initialState) {
-  hookStates[hookIndex] = hookStates[hookIndex] || initialState;
+  hookStates[hookIndex] ||= initialState;
   let currentIndex = hookIndex;
   function setState(newState) {
     if (typeof newState === "function")
