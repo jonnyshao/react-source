@@ -14,6 +14,10 @@ import {
   useMemo,
   useReducer,
   useContext,
+  useEffect,
+  useRef,
+  useLayoutEffect,
+  useImperativeHandle,
 } from "./react-dom";
 /**
  * 创建元素=>虚拟DOM
@@ -130,6 +134,10 @@ const React = {
   useCallback,
   useReducer,
   useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useImperativeHandle,
 };
 
 export default React;

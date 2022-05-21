@@ -271,6 +271,66 @@ let hookIndex = 0;
 let scheduleUpdate;
 console.log(hookStates);
 
+export function useRef() {
+  hookStates[hookIndex] ||= { current: null };
+  return hookStates[hookIndex++];
+}
+
+export function useImperativeHandle(ref, factory) {
+  ref.current = factory();
+}
+
+export function useLayoutEffect(callback, deps) {
+  let currentIndex = hookIndex;
+  if (hookStates[hookIndex]) {
+    let [destory, lastDeps] = hookStates[hookIndex];
+    let same = deps && deps.every((item, index) => item === lastDeps[index]);
+    if (same) {
+      hookIndex++;
+    } else {
+      destory && destory();
+      queueMicrotask(() => {
+        const destory = callback();
+        hookStates[currentIndex] = [destory, deps];
+      });
+      hookIndex++;
+    }
+  } else {
+    // 开启微任务
+    queueMicrotask(() => {
+      const destory = callback();
+      hookStates[currentIndex] = [destory, deps];
+    });
+
+    hookIndex++;
+  }
+}
+
+export function useEffect(callback, deps) {
+  let currentIndex = hookIndex;
+  if (hookStates[hookIndex]) {
+    let [destory, lastDeps] = hookStates[hookIndex];
+    let same = deps && deps.every((item, index) => item === lastDeps[index]);
+    if (same) {
+      hookIndex++;
+    } else {
+      destory && destory();
+      setTimeout(() => {
+        const destory = callback();
+        hookStates[currentIndex] = [destory, deps];
+      });
+      hookIndex++;
+    }
+  } else {
+    // 开启宏任务
+    setTimeout(() => {
+      const destory = callback();
+      hookStates[currentIndex] = [destory, deps];
+    });
+    hookIndex++;
+  }
+}
+
 export function useContext(context) {
   return context._currentValue;
 }
@@ -279,11 +339,13 @@ export function useReducer(reducer, initialState) {
   hookStates[hookIndex] ||= initialState;
   let currentIndex = hookIndex;
   function dispatch(action) {
+    // 获取上一次状态
     let oldState = hookStates[currentIndex];
     if (reducer) {
       let newState = reducer(oldState, action);
       hookStates[currentIndex] = newState;
     } else {
+      // 兼容useState
       let newState = isFunction(action) ? action(oldState) : action;
       hookStates[currentIndex] = newState;
     }
