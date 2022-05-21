@@ -277,8 +277,10 @@ function updateFunctionComponent(oldVdom, newVdom) {
  */
 function mount(vdom, container) {
   let newDom = createDOM(vdom);
-  container.appendChild(newDom);
-  if (newDom.componentDidMount) newDom.componentDidMount();
+  if (newDom) {
+    container.appendChild(newDom);
+    newDom.componentDidMount && newDom.componentDidMount();
+  }
 }
 function createDOM(vdom) {
   let { type, props, ref } = vdom;
@@ -322,6 +324,7 @@ function mountMemoComponent(vdom) {
   let renderVdom = type.type(props);
   vdom.prevProps = props;
   vdom.oldRenderVdom = renderVdom;
+  if (!renderVdom) return null;
   return createDOM(renderVdom);
 }
 
@@ -331,6 +334,7 @@ function mountProviderComponent(vdom) {
   // 赋值
   context._currentValue = props.value;
   let renderVdom = props.children;
+  if (!renderVdom) return null;
   vdom.oldRenderVdom = renderVdom;
 
   return createDOM(renderVdom);
@@ -340,7 +344,9 @@ function mountContextComponent(vdom) {
   let context = type._context;
 
   let renderVdom = props.children(context._currentValue);
+
   vdom.oldRenderVdom = renderVdom;
+  if (!renderVdom) return null;
   return createDOM(renderVdom);
 }
 
@@ -373,6 +379,7 @@ function mountClassComponent(vdom) {
 
   // 把类组件渲染的虚拟DOM放到类的实例上
   classInstance.oldRenderVdom = renderVdom;
+  if (!renderVdom) return null;
   let dom = createDOM(renderVdom);
 
   // 挂载处理
@@ -387,12 +394,14 @@ function mountFunctionComponent(vdom) {
   let renderVdom = type(props);
   // 把函数组件渲染的虚拟DOM放在了函数组件自己的虚拟DOM上
   vdom.oldRenderVdom = renderVdom;
+  if (!renderVdom) return null;
   return createDOM(renderVdom);
 }
 function mountForwardComponent(vdom) {
   let { type, props, ref } = vdom;
   let renderVdom = type.render(props, ref);
   vdom.oldRenderVdom = renderVdom;
+  if (!renderVdom) return null;
   return createDOM(renderVdom);
 }
 
@@ -433,6 +442,7 @@ function updateProps(dom, oldProps, newProps) {
 
 const ReactDOM = {
   render,
+  createPortal: render,
 };
 
 export default ReactDOM;
