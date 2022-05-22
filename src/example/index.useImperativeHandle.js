@@ -1,7 +1,7 @@
 // import React from "react";
 // import ReactDOM from "react-dom";
-import React from "./react";
-import ReactDOM from "./react/react-dom";
+import React from "../reactt";
+import ReactDOM from "../react/react-domm";
 function Child(props, ref) {
   const inputRef = React.useRef();
   React.useImperativeHandle(ref, () => ({

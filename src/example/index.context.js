@@ -1,7 +1,7 @@
 // import React from "react";
 // import ReactDOM from "react-dom";
-import React from "./react";
-import ReactDOM from "./react/react-dom";
+import React from "../react";
+import ReactDOM from "../react/react-dom";
 const ColorContext = React.createContext();
 console.log(ColorContext);
 const style = { margin: "5px", padding: "5px" };

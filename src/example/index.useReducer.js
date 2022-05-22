@@ -1,7 +1,7 @@
 // import React from "react";
 // import ReactDOM from "react-dom";
-import React from "./react";
-import ReactDOM from "./react/react-dom";
+import React from "../reactt";
+import ReactDOM from "../react/react-domm";
 
 const CounterContext = React.createContext();
 

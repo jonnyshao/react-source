@@ -1,7 +1,7 @@
 // import React from "react";
 // import ReactDOM from "react-dom";
-import React from "./react";
-import ReactDOM from "./react/react-dom";
+import React from "../reactt";
+import ReactDOM from "../react/react-domm";
 class ClassCounter extends React.PureComponent {
   render() {
     console.log("ClassCounter render");

@@ -1,7 +1,7 @@
 // import React from "react";
 // import ReactDOM from "react-dom";
-import React from "./react";
-import ReactDOM from "./react/react-dom";
+import React from "../reactt";
+import ReactDOM from "../react/react-domm";
 let Child = ({ data, handleClick }) => {
   console.log("Child render", data);
   return <button onClick={handleClick}>{data.number}</button>;
