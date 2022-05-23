@@ -34,12 +34,27 @@ export function useLocation() {
 export function useRoutes(routes) {
   let location = useLocation();
   const pathname = location.pathname || "/";
+
   for (let i = 0; i < routes.length; i++) {
     const { path, element } = routes[i];
-    let match = path === pathname;
+    let match = matchPath(path, pathname);
     if (match) return element;
   }
+
   return null;
+}
+
+/**
+ *
+ * @param {*} path 路由路径
+ * @param {*} pathname 当前地址栏中的路径
+ */
+
+export function matchPath(path, pathname) {
+  let matcher = compilePath(path);
+  let match = pathname.match(matcher);
+  if (!match) return null;
+  return match;
 }
 
 export function createRoutesFromChildren(children) {
@@ -55,3 +70,9 @@ export function createRoutesFromChildren(children) {
 }
 
 export function Route() {}
+
+function compilePath(path) {
+  let regexpSource = `^${path}$`;
+  let matcher = new RegExp(regexpSource);
+  return matcher;
+}
