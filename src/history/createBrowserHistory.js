@@ -34,7 +34,8 @@ function createBrowserHistory() {
       state = nextState;
     }
     globalHistory.pushState(state, null, pathname);
-    notify({ action, locaion: { state, pathname } });
+
+    notify({ action, location: { state, pathname } });
   }
 
   function listen(listener) {
@@ -49,12 +50,12 @@ function createBrowserHistory() {
    */
   function notify(newState) {
     Object.assign(history, newState);
-    listeners.forEach((listener) =>
+    listeners.forEach((listener) => {
       listener({
-        action: globalHistory.action,
-        location: globalHistory.location,
-      })
-    );
+        action: history.action,
+        location: history.location,
+      });
+    });
   }
   const history = {
     action: "POP",

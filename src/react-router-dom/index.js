@@ -1,6 +1,6 @@
 import { createBrowserHistory, createHashHistory } from "../history";
 import React from "react";
-import { Router } from "../react-router";
+import { Router, useNavigate } from "../react-router";
 
 export * from "../react-router";
 
@@ -14,6 +14,7 @@ export function HashRouter({ children }) {
     action: history.action,
     location: history.location,
   });
+
   //   监听history中的路径变化，当历史对象中的路径发生改变后执行setState
   React.useLayoutEffect(() => history.listen(setState), [history]);
   return (
@@ -45,4 +46,10 @@ export function BrowserRouter({ children }) {
       navigationType={state.action}
     ></Router>
   );
+}
+
+export function Link(props) {
+  const navigate = useNavigate();
+  const { to, children } = props;
+  return <a onClick={() => navigate(to)}>{children}</a>;
 }

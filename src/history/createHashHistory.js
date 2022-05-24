@@ -27,9 +27,11 @@ function createHashHistory() {
   function hashChangeHandler() {
     let pathname = window.location.hash.slice(1);
     Object.assign(history, { action, location: { pathname, state } });
-    listeners.forEach((listener) => listener({ location: history.location }));
     if (action === "PUSH") {
+      //说明是调用push方法，需要往历史栈中添加新的条目
+      historyStack[++index] = history.location;
     }
+    listeners.forEach((listener) => listener({ location: history.location }));
   }
   function goBack() {
     go(-1);
@@ -41,7 +43,7 @@ function createHashHistory() {
   window.addEventListener("hashchange", hashChangeHandler);
 
   function push(pathname, nextState) {
-    const action = "PUSH";
+    action = "PUSH";
     if (typeof pathname == "object") {
       state = pathname.state;
       pathname = pathname.pathname;
