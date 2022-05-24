@@ -12,7 +12,7 @@ function UserList(props) {
     <ul>
       {users.map((user, index) => (
         <li key={index}>
-          <Link to={{ pathname: `/user/detail/${user.id}`, state: user }}>
+          <Link to={{ pathname: `/user/list/detail/${user.id}`, state: user }}>
             {user.username}
           </Link>
         </li>

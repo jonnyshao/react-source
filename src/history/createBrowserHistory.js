@@ -1,9 +1,8 @@
 function createBrowserHistory() {
-  const globalHistory = window.history;
   let state;
   let listeners = [];
   function go(n) {
-    globalHistory.go(n);
+    window.history.go(n);
   }
   function goBack() {
     go(-1);
@@ -14,7 +13,7 @@ function createBrowserHistory() {
   //前进 后退事件
   window.addEventListener("popstate", () => {
     let location = {
-      state: globalHistory.state,
+      state: window.history.state,
       pathname: window.location.pathname,
     };
     notify({ action: "POP", location });
@@ -33,7 +32,7 @@ function createBrowserHistory() {
     } else {
       state = nextState;
     }
-    globalHistory.pushState(state, null, pathname);
+    window.history.pushState(state, null, pathname);
 
     notify({ action, location: { state, pathname } });
   }

@@ -82,7 +82,8 @@ function matchRoutes(routes, location) {
   let pathname = location.pathname;
   // 打平所有的分支路径
   let branches = flattenRoutes(routes);
-
+  rankRouteBranches(branches);
+  console.log(branches);
   let matches = null;
   // 按分支顺序进行匹配，匹配成功退出返回
   for (let i = 0; matches == null && i < branches.length; i++) {
@@ -90,6 +91,28 @@ function matchRoutes(routes, location) {
   }
   return matches;
 }
+
+function rankRouteBranches(branches) {
+  branches.sort((a, b) => {
+    // 分数一样 倒序排列
+    return a.score !== b.score
+      ? b.score - a.score
+      : // 分数不一样 根据childreIndex排列
+        compareIndexs(
+          a.routesMeta.map((meta) => meta.childrenIndex),
+          b.routesMeta.map((meta) => meta.childrenIndex)
+        );
+  });
+}
+
+function compareIndexs(a, b) {
+  // 如果级别数量相等且父亲都一样，说明兄弟
+  let sibling =
+    a.length === b.length && a.slice(0, -1).every((n, i) => n === b[i]);
+  // 如果是兄弟 升顺排列 索引越小 级别越高
+  return sibling ? a[a.length - 1] - b[b.length - 1] : 0;
+}
+
 /**
  *
  * @param {*} path 路由路径
@@ -195,11 +218,12 @@ function flattenRoutes(
   parentMeta = [],
   parentPath = ""
 ) {
-  routes.forEach((route) => {
+  routes.forEach((route, index) => {
     // 路由元数据
     let meta = {
       relativePath: route.path || "", // 相对父路径的路径
       route,
+      childrenIndex: index,
     };
     // 父 路径加上自己的相对路径构建完成路径
     let path = joinPaths([parentPath, meta.relativePath]);
@@ -212,11 +236,42 @@ function flattenRoutes(
     branches.push({
       path,
       routesMeta,
+      score: computeScore(path, route.index),
     });
   });
+
   return branches;
 }
 
+const isSplat = (s) => s === "*";
+const splatPenalty = -2;
+const indexRouteValue = 2;
+const dynamicSegmentValue = 3;
+const emptySegmentValue = 1;
+const staticeSegmentValue = 10;
+function computeScore(path, index) {
+  let segments = path.split("/"); // /user/add => ['user','add']
+  let initialScore = segments.length; // 分片的长度是基础分数
+  const paramReg = /^:]w+$/;
+  if (segments.some(isSplat)) {
+    initialScore += splatPenalty; // /user/* 分数降低
+  }
+  if (index) {
+    initialScore += indexRouteValue;
+  }
+  return segments
+    .filter((s) => !isSplat(s))
+    .reduce((score, segment) => {
+      return (
+        score +
+        (paramReg.test(segment)
+          ? dynamicSegmentValue
+          : segment === ""
+          ? emptySegmentValue
+          : staticeSegmentValue)
+      );
+    }, initialScore);
+}
 function joinPaths(paths) {
   return paths.join("/").replace(/\/\/+/g, "/");
 }
@@ -255,7 +310,8 @@ function compilePath(path, end) {
 
   if (path.endsWith("*")) {
     paramNames.push("*");
-    regexpSource += `(?:\\/(.+)|\\/*)$`;
+    regexpSource +=
+      path === "*" || path === "/*" ? "(.*)$" : `(?:\\/(.+)|\\/*)$`;
   } else {
     regexpSource += end ? "\\/*$" : "(?:\\b|\\/|$)";
   }
@@ -285,4 +341,13 @@ function useOutlet() {
   let { outlet } = React.useContext(RouteContext);
   if (!outlet) return null;
   return outlet;
+}
+
+export function Navigate({ to }) {
+  let navigate = useNavigate();
+
+  React.useLayoutEffect(() => {
+    navigate(to);
+  });
+  return null;
 }
