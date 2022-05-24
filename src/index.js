@@ -14,6 +14,8 @@ class Counter extends Component {
       <div>
         <p>{this.props.number}</p>
         <button onClick={this.props.add}>+</button>
+        <button onClick={this.props.thunkAdd}>thunkAdd</button>
+        <button onClick={this.props.promiseAdd}>promiseAdd</button>
         <button onClick={this.props.minus}>-</button>
       </div>
     );
