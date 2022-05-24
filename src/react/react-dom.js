@@ -1,4 +1,3 @@
-import { act } from "react-dom/test-utils";
 import {
   REACT_COMPONENT,
   REACT_ELEMENT,
