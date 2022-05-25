@@ -17,36 +17,36 @@
   <body>
     <div id="root"></div>
     <script>
-      function compose(...funcs) {
-        return funcs.reduce(
-          (a, b) =>
-            (...args) =>
-              a(b(...args))
-        );
-      }
-      let promise = (next) => (action) => {
-        console.log('promise');
-        next(action);
-      };
-      let thunk = (next) => (action) => {
-        console.log('thunk');
-        next(action);
-      };
-      let logger = (next) => (action) => {
-        console.log('logger');
-        next(action);
-      };
+      // function compose(...funcs) {
+      //   return funcs.reduce(
+      //     (a, b) =>
+      //       (...args) =>
+      //         a(b(...args))
+      //   );
+      // }
+      // let promise = (next) => (action) => {
+      //   console.log('promise');
+      //   next(action);
+      // };
+      // let thunk = (next) => (action) => {
+      //   console.log('thunk');
+      //   next(action);
+      // };
+      // let logger = (next) => (action) => {
+      //   console.log('logger');
+      //   next(action);
+      // };
 
-      let chain = [promise, thunk, logger];
+      // let chain = [promise, thunk, logger];
 
-      let composed = compose(...chain);
-      console.log(composed);
-      let dispatch = () => {
-        console.log('原始的dispatch');
-      };
+      // let composed = compose(...chain);
+      // console.log(composed);
+      // let dispatch = () => {
+      //   console.log('原始的dispatch');
+      // };
 
-      let newDispatch = composed(dispatch);
-      newDispatch({ type: 'add' });
+      // let newDispatch = composed(dispatch);
+      // newDispatch({ type: 'add' });
     </script>
   </body>
 </html>

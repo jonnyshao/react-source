@@ -1,6 +1,6 @@
-import React from "react";
-import ReactReduxContext from "./ReactReduxContext";
-import { bindActionCreators } from "../redux";
+import React from 'react';
+import ReactReduxContext from './ReactReduxContext';
+import { bindActionCreators } from '../redux';
 
 function connect(mapStateToProps, mapDispatchToProps) {
   return function (OldComponent) {
@@ -14,7 +14,7 @@ function connect(mapStateToProps, mapDispatchToProps) {
         [prevState]
       );
       let dispatchProps = React.useMemo(() => {
-        if (typeof mapDispatchToProps == "function") {
+        if (typeof mapDispatchToProps == 'function') {
           return mapDispatchToProps(dispatch);
         }
 
@@ -22,7 +22,6 @@ function connect(mapStateToProps, mapDispatchToProps) {
       }, [dispatch]);
       const [, forceUpdate] = React.useReducer((x) => x + 1, 0);
       React.useLayoutEffect(() => {
-        console.log("useLayoutEffect");
         return subscribe(forceUpdate);
       }, []);
       //   React 18 组件更新方法
